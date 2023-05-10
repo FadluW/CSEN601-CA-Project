@@ -1,4 +1,4 @@
-Public Class registers {
+public class registers {
 
     private int GPRS[] = new int[31];   //R1 - R31
     private final static int zeroRegister = 0;
@@ -44,6 +44,6 @@ Public Class registers {
 
     public int setPC(int x) {
         PC = x;
-        return;
+        return PC;
     }
 }
