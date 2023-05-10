@@ -1,5 +1,4 @@
 public class registers {
-
     private int GPRS[] = new int[31];   //R1 - R31
     private final static int zeroRegister = 0;
     private int PC = 0;
@@ -9,8 +8,10 @@ public class registers {
     }
 
     /**
-     * Get register from R0 to R31
+     * Get value of register from R0 to R31
      * 
+     * @param x register Rx
+     * @return register Rx
      */
     public int getRegister(int x) {
         // Ensure within register range
@@ -20,6 +21,12 @@ public class registers {
         return GPRS[x - 1];
     }
 
+    /**
+     * Set a given register to a passed value
+     * 
+     * @param x register Rx
+     * @param value new value for the register
+     */
     public void setRegister(int x, int value) {
         // Ensure within register range
         if (x < 0 || x > 31) return;
@@ -30,6 +37,8 @@ public class registers {
 
     /**
      * Gets the current value of the program counter
+     * 
+     * @return current value of the PC
      */
     public int getPC() {
         return PC;
@@ -37,11 +46,19 @@ public class registers {
 
     /**
      * Returns incremented program counter
+     * 
+     * @return incremented value of the PC
      */
     public int incPC() {
         return ++PC;
     }
 
+    /**
+     * Modify the program counter to an immediate value
+     * 
+     * @param x is the new value of the PC
+     * @return new PC
+     */
     public int setPC(int x) {
         PC = x;
         return PC;
