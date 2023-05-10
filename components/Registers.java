@@ -1,9 +1,14 @@
-public class registers {
+package components;
+
+public class Registers {
     private int GPRS[] = new int[31];   //R1 - R31
     private final static int zeroRegister = 0;
     private int PC = 0;
 
-    public registers() {
+    /**
+     * Initiate CPU Registers to be used, including the PC
+     */
+    public Registers() {
 
     }
 
