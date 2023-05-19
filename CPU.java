@@ -7,10 +7,11 @@ import components.*;
 public class CPU {
     // Initialize global CPU components
     static int clockCycles = 1;
-    static int numInstructions = 0;
+    static int numInstructions = 7;
     static int IR;
     static int Accumulator;
-    static String[] MEM = new String[2048];
+    static int[] MEM = new int[2048];
+    static int[] instrCount = {0, 0, 0, 0, 0};
 
     // Initialize components
     static Registers registers = new Registers();
@@ -21,8 +22,7 @@ public class CPU {
         // parse("");
 
         // Calculate number of loops
-        // final int numLoops = 7 + ((numInstructions - 1) * 2);
-        final int numLoops = 19;
+        final int numLoops = 7 + ((numInstructions - 1) * 2);
         
         // Iterate over loop counts
         for (int i = 0; i < numLoops; i++) {
@@ -52,7 +52,7 @@ public class CPU {
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
             Instruction i = new Instruction(line);
-            String instructionBinaryCode= i.getBinaryString();
+            int instructionBinaryCode= i.getBinaryInt();
             
             int PC=registers.getPC();
             registers.incPC(); 
@@ -104,53 +104,67 @@ public class CPU {
 
     private static void writeback() {
         // Only do writeback on odd cycles and after first memory completed
-        if (clockCycles < 7 || clockCycles % 2 == 0) return;
+        if (clockCycles < 7 || clockCycles % 2 == 0 || clockCycles > (2 * numInstructions + 6)) return;
         
         // Log current instruction number
-        System.out.println(clockCycles + "[WRITEBACK]: Instruction " + (registers.getPC() - 3));
+        instrCount[4]++;
+        System.out.println(clockCycles + " - [WRITEBACK]: Instruction " + instrCount[4]);
     }
 
     private static void memory() {
         // Only do memory on even cycles and after first execute completed
-        if (clockCycles < 6 || clockCycles % 2 == 1) return;
+        if (clockCycles < 6 || clockCycles % 2 == 1 || clockCycles > (2 * numInstructions + 5)) return;
 
         // Log current instruction number
-        System.out.println(clockCycles + "[MEMORY]: Instruction " + (registers.getPC() - 2));
+        instrCount[3]++;
+        System.out.println(clockCycles + " - [MEMORY]: Instruction " + instrCount[3]);
     }
 
     private static void execute() {
         // Only decode after first decode completed
-        if (clockCycles < 4) return;
+        if (clockCycles < 4 || clockCycles > (2 * numInstructions + 3)) return;
 
         // Act based on ALU status, busy simulates the 2 cycles it takes to perform the operations
         if (alu.isBusy()) {
+            // Log current instruction number
+            System.out.println(clockCycles + " - [EXECUTE]: Instruction " + instrCount[2]);
             Accumulator = alu.free();
             return;
         }
 
         // Log current instruction number
-        System.out.println(clockCycles + "[EXECUTE]: Instruction " + (registers.getPC() - 1));
+        instrCount[2]++;
+        System.out.println(clockCycles + " - [EXECUTE]: Instruction " + instrCount[2]);
+        alu.execute();
     }
 
     private static void decode() {
         // Only decode after first fetch completed
-        if (clockCycles < 2) return;
+        if (clockCycles < 2 || clockCycles > (2 * numInstructions + 1)) return;
 
-        // Log current instruction number
-        System.out.println(clockCycles + "[DECODE]: Instruction " + (registers.getPC()));
+        // Simulate decode on two cycles
+        if (clockCycles % 2 == 0) {
+            // Log current instruction number
+            instrCount[1]++;
+            System.out.println(clockCycles + " - [DECODE]: Instruction " + instrCount[1]);
+        } else {
+            // Log current instruction number
+            System.out.println(clockCycles + " - [DECODE]: Instruction " + instrCount[1]);
+        }
     }
 
     private static void fetch() {
         // Only fetch on odd cycles
-        if (clockCycles % 2 == 0) return;
-
-        // Log current instruction number
-        System.out.println(clockCycles + "[FETCH]: Instruction " + (registers.getPC() + 1));
+        if (clockCycles % 2 == 0 || clockCycles > (2 * numInstructions - 1)) return;
 
         // Move PC to MAR, then increment it
         int AR = registers.getPC();
         registers.incPC();
+        IR = MEM[AR];
         
+        // Log current instruction number
+        instrCount[0]++;
+        System.out.println(clockCycles + " - [FETCH]: Instruction " + instrCount[0]);
 
 
         // Move current 

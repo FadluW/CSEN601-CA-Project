@@ -14,6 +14,10 @@ public class Instruction {
         return bString;
     }
 
+    public int getBinaryInt() {
+        return Integer.parseInt(bString, 2);
+    }
+
     private void initialize() {
         String instructionBinaryCode = "";
     	String [] instruction = line.split(" ");

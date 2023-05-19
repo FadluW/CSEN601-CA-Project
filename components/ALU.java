@@ -18,7 +18,7 @@ public class ALU {
     }
 
     public void execute() {
-
+        busy = true;
     }
 
     public int getResult() {
