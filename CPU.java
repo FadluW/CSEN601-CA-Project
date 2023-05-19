@@ -13,6 +13,16 @@ public class CPU {
     static int[] MEM = new int[2048];
     static int[] instrCount = {0, 0, 0, 0, 0};
 
+    // Global Registers for decode
+    static int opcode;
+    static int rd;
+    static int shamt;
+    static int imm;
+    static int address;
+    static int valueRS;
+    static int valueRT;
+    
+
     // Initialize components
     static Registers registers = new Registers();
     static ALU alu = new ALU();
@@ -144,10 +154,25 @@ public class CPU {
 
         // Simulate decode on two cycles
         if (clockCycles % 2 == 0) {
+            opcode =  (IR & 0b11110000000000000000000000000000) >>> 28;  // bits31:28
+            int rs =  (IR & 0b00001111100000000000000000000000) >>> 23;  // bits27:23
+            int rt =  (IR & 0b00000000011111000000000000000000) >>> 18;  // bits22:18
+            rd =      (IR & 0b00000000000000111110000000000000) >>> 13;  // bits17:13
+            shamt =   (IR & 0b00000000000000000001111111111111);         // bits17:10
+            imm =     (IR & 0b00000000000000111111111111111111);         // bits17:0
+            address = (IR & 0b00001111111111111111111111111111);         // bits27:0
+            
+            valueRS = registers.getRegister(rs);
+            valueRT = registers.getRegister(rt);
+
+            
             // Log current instruction number
             instrCount[1]++;
             System.out.println(clockCycles + " - [DECODE]: Instruction " + instrCount[1]);
         } else {
+            // Send data to ALU
+            alu.loadData(opcode, rd, shamt, imm, address, valueRS, valueRT);
+            
             // Log current instruction number
             System.out.println(clockCycles + " - [DECODE]: Instruction " + instrCount[1]);
         }
