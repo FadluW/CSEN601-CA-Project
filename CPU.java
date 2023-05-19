@@ -8,9 +8,7 @@ public class CPU {
     // Initialize global CPU components
     static int clockCycles = 1;
     static int numInstructions = 0;
-    static int countID = 0;
-    static int countEX = 0;
-    static String IR;
+    static int IR;
     static int Accumulator;
     static String[] MEM = new String[2048];
 
@@ -20,11 +18,12 @@ public class CPU {
 
     public static void main(String[] args) {
         // Parse text file
-        parse("");
+        // parse("");
 
         // Calculate number of loops
-        final int numLoops = 7 + ((numInstructions - 1) * 2);
-
+        // final int numLoops = 7 + ((numInstructions - 1) * 2);
+        final int numLoops = 19;
+        
         // Iterate over loop counts
         for (int i = 0; i < numLoops; i++) {
             fetch();
@@ -104,13 +103,19 @@ public class CPU {
     }
 
     private static void writeback() {
+        // Only do writeback on odd cycles and after first memory completed
+        if (clockCycles < 7 || clockCycles % 2 == 0) return;
+        
+        // Log current instruction number
+        System.out.println(clockCycles + "[WRITEBACK]: Instruction " + (registers.getPC() - 3));
     }
 
     private static void memory() {
-        // Only do memory on even cycles
-        if (clockCycles % 2 == 1) return;
+        // Only do memory on even cycles and after first execute completed
+        if (clockCycles < 6 || clockCycles % 2 == 1) return;
 
-
+        // Log current instruction number
+        System.out.println(clockCycles + "[MEMORY]: Instruction " + (registers.getPC() - 2));
     }
 
     private static void execute() {
@@ -123,43 +128,30 @@ public class CPU {
             return;
         }
 
-        String decode = RIJ(IR);
-        String Itype = decode.substring(0, 1);
-        String OPCode = decode.substring(2);
-        if (Itype == "R") {
-            int R1 = Integer.parseInt(IR.substring(4,9), 2);
-            int R2 = Integer.parseInt(IR.substring(9,14), 2);
-            int R3 = Integer.parseInt(IR.substring(14,19), 2);
-            
-            int value_R2 = registers.getRegister(R2);
-            int value_R3 = registers.getRegister(R3);
-            
-            // switch(OPCode) {
-            //     case "ADD": Registers[R1]=value_R2+value_R3; break; 
-            //     case "SUB": Registers[R1]=value_R2-value_R3; break; 
-            //     case "MUL": Registers[R1]=value_R2*value_R3; break; 
-            // }
-        }
-        else if (Itype=="I") {
-            
-        }
-        else {
-            
-        }
+        // Log current instruction number
+        System.out.println(clockCycles + "[EXECUTE]: Instruction " + (registers.getPC() - 1));
     }
 
     private static void decode() {
         // Only decode after first fetch completed
         if (clockCycles < 2) return;
+
+        // Log current instruction number
+        System.out.println(clockCycles + "[DECODE]: Instruction " + (registers.getPC()));
     }
 
     private static void fetch() {
         // Only fetch on odd cycles
         if (clockCycles % 2 == 0) return;
 
+        // Log current instruction number
+        System.out.println(clockCycles + "[FETCH]: Instruction " + (registers.getPC() + 1));
+
         // Move PC to MAR, then increment it
         int AR = registers.getPC();
         registers.incPC();
+        
+
 
         // Move current 
     }
