@@ -1,7 +1,7 @@
 package components;
 
 public class Instruction {
-    private String bString;
+    private int instructionBinaryCode = 0;
     private String line;
 
 
@@ -10,63 +10,65 @@ public class Instruction {
         initialize();
     }
 
-    public String getBinaryString() {
-        return bString;
-    }
-
     public int getBinaryInt() {
-        return Integer.parseInt(bString, 2);
+        return instructionBinaryCode;
     }
 
     private void initialize() {
-        String instructionBinaryCode = "";
     	String [] instruction = line.split(" ");
     	
         // Switch on the OP code
     	switch(instruction[0]) {
             case "ADD": {
-                instructionBinaryCode += "0000";
                 break;
             }
             case "SUB": {
-                instructionBinaryCode += "0001";
+                instructionBinaryCode += 0b10000000000000000000000000000;
                 break;
             } 
             case "MUL": {
-                instructionBinaryCode += "0010";
+                instructionBinaryCode += 0b100000000000000000000000000000;
                 break;
             }
             case "MOVI": {
-                instructionBinaryCode += "0011";
+                instructionBinaryCode += 0b110000000000000000000000000000;
                 break;
             }
             case "JEQ": {
-                instructionBinaryCode += "0100";
+                instructionBinaryCode += 0b1000000000000000000000000000000;
                 break;
             }
             case "AND": {
-                instructionBinaryCode += "0101";
+                instructionBinaryCode += 0b1010000000000000000000000000000;
                 break;
             }
             case "XORI": {
-                instructionBinaryCode += "0110";
+                instructionBinaryCode += 0b1100000000000000000000000000000;
+                break;
+            }
+            case "JMP": {
+                instructionBinaryCode += 0b1110000000000000000000000000000;
                 break;
             }
             case "LSL": {
-                instructionBinaryCode += "0111";
+                instructionBinaryCode += 0b10000000000000000000000000000000;
                 break;
             }
             case "LSR": {
-                instructionBinaryCode += "1000";
+                instructionBinaryCode += 0b10010000000000000000000000000000;
                 break;
             }
             case "MOVR": {
-                instructionBinaryCode += "1001";
+                instructionBinaryCode += 0b10100000000000000000000000000000;
                 break;
             }
             case "MOVM": {
-                instructionBinaryCode += "1010";
+                instructionBinaryCode += 0b10110000000000000000000000000000;
                 break;
+            }
+            case "NOP": {
+                instructionBinaryCode = 0b11000000000000000000000000000000;
+                return;
             }
         }
     	
@@ -76,34 +78,41 @@ public class Instruction {
             case "SUB":
             case "MUL":
             case "AND": {
-                instructionBinaryCode+= RegisterNumber(instruction[1]) + RegisterNumber(instruction[2]) + RegisterNumber(instruction[3])+"0000000000000";
+                instructionBinaryCode += RegisterNumber(instruction[1]) << 23;
+                instructionBinaryCode += RegisterNumber(instruction[2]) << 18;
+                instructionBinaryCode += RegisterNumber(instruction[3]) << 13;
                 break;
             }
             case "LSL":
             case "LSR": {
-                instructionBinaryCode += RegisterNumber(instruction[1]) + RegisterNumber(instruction[2]) + bitPadding(instruction[3], 13);
+                instructionBinaryCode += RegisterNumber(instruction[1]) << 23;
+                instructionBinaryCode += RegisterNumber(instruction[2]) << 18;
+                instructionBinaryCode += Integer.parseInt(instruction[3]);
                 break;
             }
             case "JEQ":
             case "XORI":
             case "MOVR":
             case "MOVM": {
-                instructionBinaryCode += RegisterNumber(instruction[1]) + RegisterNumber(instruction[2]) + bitPadding(instruction[3], 18);
+                instructionBinaryCode += RegisterNumber(instruction[1]) << 23;
+                instructionBinaryCode += RegisterNumber(instruction[2]) << 18;
+                instructionBinaryCode += Integer.parseInt(instruction[3]);
                 break;
             }
             case "MOVI": {
-                instructionBinaryCode += RegisterNumber(instruction[1]) + "00000" + bitPadding(instruction[3], 18);
+                instructionBinaryCode += RegisterNumber(instruction[1]) << 23;
+                instructionBinaryCode += Integer.parseInt(instruction[2]);
                 break;
             }
             case "JMP": {
-                instructionBinaryCode += RegisterNumber(instruction[1]) + bitPadding(instruction[3], 28);
+                instructionBinaryCode += Integer.parseInt(instruction[1]);
                 break;
             }
     	}
-        this.bString = instructionBinaryCode;
     }
 
     /**
+     * @deprecated
      * Takes an integer number and translates it to string binary, adding zero padding to the left until it is required bits long.
      * @param num denary integer in the form of a String
      * @param bitLength number of bits binary string should end up as
@@ -128,43 +137,8 @@ public class Instruction {
      * @param Register register string
      * @return binary string value of register index
      */
-    public static String RegisterNumber(String Register)
+    public static int RegisterNumber(String Register)
     {
-    	switch(Register)
-    	{
-    	case "R0" :return "00000";
-    	case "R1" :return "00001";
-    	case "R2" :return "00010";
-    	case "R3" :return "00011";
-    	case "R4" :return "00100";
-    	case "R5" :return "00101";
-    	case "R6" :return "00110";
-    	case "R7" :return "00111";
-    	case "R8" :return "01000";
-    	case "R9" :return "01001";
-    	case "R10":return "01010";
-    	case "R11":return "01011";
-    	case "R12":return "01100";
-    	case "R13":return "01101";
-    	case "R14":return "01110";
-    	case "R15":return "01111";
-    	case "R16":return "10000";
-    	case "R17":return "10001";
-    	case "R18":return "10010";
-    	case "R19":return "10011";
-    	case "R20":return "10100";
-    	case "R21":return "10101";
-    	case "R22":return "10110";
-    	case "R23":return "10111";
-    	case "R24":return "11000";
-    	case "R25":return "11001";
-    	case "R26":return "11010";
-    	case "R27":return "11011";
-    	case "R28":return "11100";
-    	case "R29":return "11101";
-    	case "R30":return "11110";
-    	case "R31":return "11111";
-    	 default: return "00000";
-    	}	
+    	return Integer.parseInt(Register.substring(1));
     }
 }

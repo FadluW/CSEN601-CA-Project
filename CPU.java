@@ -5,23 +5,39 @@ import java.util.Scanner;
 import components.*;
 
 public class CPU {
+    static final String dashes = "------------------------";
+
     // Initialize global CPU components
     static int clockCycles = 1;
     static int numInstructions = 7;
     static int IR;
-    static int Accumulator;
     static int[] MEM = new int[2048];
     static int[] instrCount = {0, 0, 0, 0, 0};
 
     // Global Registers for decode
     static int opcode;
-    static int rd;
+    static int R1;
     static int shamt;
     static int imm;
     static int address;
-    static int valueRS;
-    static int valueRT;
+    static int valueR1;
+    static int valueR2;
+    static int valueR3;
+
+    // Global Register for execute
+    static int Accumulator;
+    static boolean memWrite;
+    static boolean memRead;
+    static boolean isJump;
+    static int R1exec;
+    static boolean NOPexec;
     
+    // Global Register for memory
+    static int Accumulator2;
+    static int R1mem;
+    static boolean memWrite2;
+    static boolean isJump2;
+    static boolean NOPmem;
 
     // Initialize components
     static Registers registers = new Registers();
@@ -29,7 +45,7 @@ public class CPU {
 
     public static void main(String[] args) {
         // Parse text file
-        // parse("");
+        parse("./code.txt");
 
         // Calculate number of loops
         final int numLoops = 7 + ((numInstructions - 1) * 2);
@@ -64,13 +80,13 @@ public class CPU {
             Instruction i = new Instruction(line);
             int instructionBinaryCode= i.getBinaryInt();
             
-            int PC=registers.getPC();
+            int PC = registers.getPC();
             registers.incPC(); 
-            MEM[PC]=instructionBinaryCode;
+            MEM[PC] = instructionBinaryCode;
         }
 
         // Get total instructions from the value of the PC after finishing reading the text file
-        numInstructions = registers.incPC();
+        numInstructions = registers.getPC();
         
         // Reset PC for later fetching, close file
         registers.setPC(0);
@@ -115,19 +131,60 @@ public class CPU {
     private static void writeback() {
         // Only do writeback on odd cycles and after first memory completed
         if (clockCycles < 7 || clockCycles % 2 == 0 || clockCycles > (2 * numInstructions + 6)) return;
+
         
         // Log current instruction number
         instrCount[4]++;
         System.out.println(clockCycles + " - [WRITEBACK]: Instruction " + instrCount[4]);
+
+        // Check if NOP
+        if (NOPmem) {
+            System.out.println("NOP instruction");
+            System.out.println(dashes);
+            return;
+        }
+        
+        if (isJump2) {
+            // TODO: Jump
+            registers.setPC(Accumulator2);
+            System.out.println("Jump to: " + Accumulator2);
+        } else if (!memWrite2) {
+            registers.setRegister(R1mem, Accumulator2);
+            System.out.println("Writeback " + Accumulator2 + " to R" + R1mem);
+        }
+        System.out.println(dashes);
     }
 
     private static void memory() {
         // Only do memory on even cycles and after first execute completed
         if (clockCycles < 6 || clockCycles % 2 == 1 || clockCycles > (2 * numInstructions + 5)) return;
 
+        memWrite2 = memWrite;
+        isJump2 = isJump;
+        Accumulator2 = Accumulator;
+        R1mem = R1exec;
+        
         // Log current instruction number
         instrCount[3]++;
         System.out.println(clockCycles + " - [MEMORY]: Instruction " + instrCount[3]);
+
+        // Check if NOP
+        NOPmem = NOPexec;
+        if (NOPexec) {
+            System.out.println("NOP instruction");
+            System.out.println(dashes);
+            return;
+        }
+
+        if (memRead) {
+            Accumulator2 = MEM[Accumulator];
+            System.out.println("Read: " + Accumulator2);
+        }
+        else if (memWrite) {
+            MEM[Accumulator]=R1exec;
+            System.out.println("Write: " + R1exec + " in " + Accumulator);
+        }
+        System.out.println(dashes);
     }
 
     private static void execute() {
@@ -139,13 +196,32 @@ public class CPU {
             // Log current instruction number
             System.out.println(clockCycles + " - [EXECUTE]: Instruction " + instrCount[2]);
             Accumulator = alu.free();
+
+            // Check if this is a NOP
+            NOPexec = alu.isNOP();
+            if (NOPexec) {
+                System.out.println("NOP instruction");
+                System.out.println(dashes);
+                return;
+            }
+            
+            System.out.println("Accumulator: " + Accumulator);
+            System.out.println(dashes);
             return;
         }
 
         // Log current instruction number
         instrCount[2]++;
         System.out.println(clockCycles + " - [EXECUTE]: Instruction " + instrCount[2]);
+        
         alu.execute();
+        
+        R1exec = alu.R1;
+        memRead = alu.memRead;
+        memWrite = alu.memWrite;
+        isJump = alu.isJump;
+        System.out.println("Flags = [MEMREAD: " + memRead + ", MEMWRITE: " + memWrite + ", ISJUMP: " + isJump + "]");
+        System.out.println(dashes);
     }
 
     private static void decode() {
@@ -154,27 +230,40 @@ public class CPU {
 
         // Simulate decode on two cycles
         if (clockCycles % 2 == 0) {
-            opcode =  (IR & 0b11110000000000000000000000000000) >>> 28;  // bits31:28
-            int rs =  (IR & 0b00001111100000000000000000000000) >>> 23;  // bits27:23
-            int rt =  (IR & 0b00000000011111000000000000000000) >>> 18;  // bits22:18
-            rd =      (IR & 0b00000000000000111110000000000000) >>> 13;  // bits17:13
+            opcode =  (IR & 0b11110000000000000000000000000000) >> 28;  // bits31:28
+            R1 =      (IR & 0b00001111100000000000000000000000) >> 23;  // bits27:23
+            int R2 =  (IR & 0b00000000011111000000000000000000) >> 18;  // bits22:18
+            int R3 =  (IR & 0b00000000000000111110000000000000) >> 13;  // bits17:13
             shamt =   (IR & 0b00000000000000000001111111111111);         // bits17:10
             imm =     (IR & 0b00000000000000111111111111111111);         // bits17:0
             address = (IR & 0b00001111111111111111111111111111);         // bits27:0
             
-            valueRS = registers.getRegister(rs);
-            valueRT = registers.getRegister(rt);
+            valueR1 = registers.getRegister(R1);
+            valueR2 = registers.getRegister(R2);
+            valueR3 = registers.getRegister(R3);
 
             
             // Log current instruction number
             instrCount[1]++;
             System.out.println(clockCycles + " - [DECODE]: Instruction " + instrCount[1]);
+            System.out.println("opcode: " + opcode);
+            System.out.println("R1: " + R1);
+            System.out.println("R2: " + R2);
+            System.out.println("R3: " + R3);
+            System.out.println("shamt: " + shamt);
+            System.out.println("imm: " + imm);
+            System.out.println("address: " + Integer.toBinaryString(address));
+            System.out.println("valueR1: " + valueR1);
+            System.out.println("valueR2: " + valueR2);
+            System.out.println("valueR3: " + valueR3);
+            System.out.println(dashes);
         } else {
             // Send data to ALU
-            alu.loadData(opcode, rd, shamt, imm, address, valueRS, valueRT);
-            
+            alu.loadData(opcode, R1, shamt, imm, address, valueR1, valueR2, valueR3, instrCount[1]);
+
             // Log current instruction number
             System.out.println(clockCycles + " - [DECODE]: Instruction " + instrCount[1]);
+            System.out.println(dashes);
         }
     }
 
@@ -190,8 +279,8 @@ public class CPU {
         // Log current instruction number
         instrCount[0]++;
         System.out.println(clockCycles + " - [FETCH]: Instruction " + instrCount[0]);
-
-
-        // Move current 
+        System.out.println("PC: " + AR);
+        System.out.println("Instruction " + Integer.toBinaryString(IR));
+        System.out.println(dashes);
     }
 }

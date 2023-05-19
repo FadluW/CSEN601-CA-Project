@@ -3,13 +3,21 @@ package components;
 public class ALU {
     private boolean busy = false;
     private int result = 0;
-    private static int opcode;
-    private static int rd;
-    private static int shamt;
-    private static int imm;
-    private static int address;
-    private static int valueRS;
-    private static int valueRT;
+
+    private int opcode;
+    private int shamt;
+    private int imm;
+    private int address;
+    private int valueR1;
+    private int valueR2;
+    private int valueR3;
+    private int pc;
+    public int R1;
+
+    public boolean memRead; 
+    public boolean memWrite; 
+    public boolean isJump; 
+    public boolean isNOP;
     
     public ALU() {
         
@@ -26,20 +34,96 @@ public class ALU {
 
     public void execute() {
         busy = true;
+        memRead = false;
+        memWrite = false;
+        isJump = false;
+        isNOP = false;
 
         switch(opcode) {
-            
+            // ADD
+            case 0: {
+                result = valueR2 + valueR3;
+                break;
+            }
+            // SUB
+            case 0b1: {
+                result = valueR2 - valueR3;
+                break;
+            }
+            // MUL
+            case 0b10: {
+                result = valueR2 * valueR3;
+                break;
+            }
+            // MOVI
+            case 0b11: {
+                result = imm;
+                break;
+            }
+            // JEQ
+            case 0b100: {
+                if (valueR1 == valueR2) {
+                    result = pc + 1 + imm;
+                    // Jump flag to know we will jump
+                    isJump = true;
+                }
+                break;
+            }
+            // AND 
+            case 0b101: {
+                result = valueR1 & valueR2;
+                break;
+            }
+            // XOR
+            case 0b110: {
+                result = (valueR1 ^ valueR2);
+                break;
+            }
+            // JMP
+            case 0b111: {
+                result = (pc & 0b11110000000000000000000000000000) + address;
+                isJump = true;
+                break;
+            }
+            // LSL
+            case -8: {
+                result = valueR2 << shamt;
+                break;
+            }
+            // LSR 
+            case -7: {
+                result = valueR2 >> shamt;
+                break;
+            }
+            // MOVR
+            case -6: {
+                memRead = true;
+                result = valueR2 + imm;
+                break;
+            }
+            // MOVM
+            case -5: {
+                memWrite = true;
+                result = valueR2 + imm;
+                break;
+            }
+            // NOP
+            case -4: {
+                isNOP = true;
+            }
         }
     }
 
-    public void loadData(int opcode, int rd, int shamt, int imm, int address, int valueRS, int valueRT) {
-        ALU.opcode = opcode;
-        ALU.rd = rd;
-        ALU.shamt = shamt;
-        ALU.imm = imm;
-        ALU.address = address;
-        ALU.valueRS = valueRS;
-        ALU.valueRT = valueRT;   
+    public void loadData(int opcode, int R1, int shamt, int imm, int address, int valueR1, int valueR2, int valueR3, int pc) {
+        this.opcode = opcode;
+        this.R1 = R1;
+        this.shamt = shamt;
+        this.imm = imm;
+        this.address = address;
+        this.valueR1 = valueR1;
+        this.valueR2 = valueR2;
+        this.valueR3 = valueR3;   
+        this.pc = pc;
     }
 
     public int getResult() {
@@ -48,5 +132,9 @@ public class ALU {
 
     public boolean isBusy() {
         return busy;
+    }
+
+    public boolean isNOP() {
+        return isNOP;
     }
 }
