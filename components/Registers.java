@@ -37,7 +37,7 @@ public class Registers {
         if (x < 0 || x > 31) return;
 
         if (x == 0) return;
-        GPRS[x] = value;
+        GPRS[x - 1] = value;
     }
 
     /**

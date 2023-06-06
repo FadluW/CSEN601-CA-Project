@@ -18,6 +18,7 @@ public class ALU {
     public boolean memWrite; 
     public boolean isJump; 
     public boolean isNOP;
+    public boolean jumpvalue=false;
     
     public ALU() {
         
@@ -37,6 +38,7 @@ public class ALU {
         memRead = false;
         memWrite = false;
         isJump = false;
+        jumpvalue = false;
         isNOP = false;
 
         switch(opcode) {
@@ -62,10 +64,12 @@ public class ALU {
             }
             // JEQ
             case 0b100: {
+                // Jump flag to know we will jump
+                result = pc;
+                isJump = true;
                 if (valueR1 == valueR2) {
-                    result = pc + 1 + imm;
-                    // Jump flag to know we will jump
-                    isJump = true;
+                    jumpvalue=true;
+                    result += imm;
                 }
                 break;
             }
@@ -81,8 +85,9 @@ public class ALU {
             }
             // JMP
             case 0b111: {
-                result = (pc & 0b11110000000000000000000000000000) + address;
+                result = (pc & 0b11110000000000000000000000000000) + address - 1;
                 isJump = true;
+                jumpvalue=true;
                 break;
             }
             // LSL
@@ -115,7 +120,9 @@ public class ALU {
     }
 
     public void loadData(int opcode, int R1, int shamt, int imm, int address, int valueR1, int valueR2, int valueR3, int pc) {
+        // Don't load data if NOP
         this.opcode = opcode;
+        if (opcode == -4) return;
         this.R1 = R1;
         this.shamt = shamt;
         this.imm = imm;

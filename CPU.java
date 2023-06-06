@@ -8,8 +8,10 @@ public class CPU {
     static final String dashes = "------------------------";
 
     // Initialize global CPU components
+    static boolean done = false;
     static int clockCycles = 1;
-    static int numInstructions = 7;
+    static int numInstructions;
+    static int fetchStart;
     static int IR;
     static int[] MEM = new int[2048];
     static int[] instrCount = {0, 0, 0, 0, 0};
@@ -29,7 +31,9 @@ public class CPU {
     static boolean memWrite;
     static boolean memRead;
     static boolean isJump;
+    static boolean jumpValue;
     static int R1exec;
+    static int R1exec1;
     static boolean NOPexec;
     
     // Global Register for memory
@@ -37,6 +41,7 @@ public class CPU {
     static int R1mem;
     static boolean memWrite2;
     static boolean isJump2;
+    static boolean jumpValue2;
     static boolean NOPmem;
 
     // Initialize components
@@ -48,10 +53,11 @@ public class CPU {
         parse("./code.txt");
 
         // Calculate number of loops
-        final int numLoops = 7 + ((numInstructions - 1) * 2);
-        
+        // final int numLoops = 7 + ((numInstructions - 1) * 2);
+        fetchStart = clockCycles;
+
         // Iterate over loop counts
-        for (int i = 0; i < numLoops; i++) {
+        while(!done) {
             fetch();
             decode();
             execute();
@@ -130,8 +136,14 @@ public class CPU {
 
     private static void writeback() {
         // Only do writeback on odd cycles and after first memory completed
-        if (clockCycles < 7 || clockCycles % 2 == 0 || clockCycles > (2 * numInstructions + 6)) return;
+        if (clockCycles < (fetchStart + 6) || clockCycles % 2 == ((fetchStart + 1) % 2)) return;
+        
 
+        // Check if done
+        if (instrCount[4] >= numInstructions) {
+            done = true;
+            return;
+        }
         
         // Log current instruction number
         instrCount[4]++;
@@ -144,9 +156,20 @@ public class CPU {
             return;
         }
         
-        if (isJump2) {
-            // TODO: Jump
+        if (isJump2 && jumpValue2) {
             registers.setPC(Accumulator2);
+            
+            // Reset stats used
+            fetchStart = clockCycles;
+            jumpValue = false;
+            jumpValue2 = false;
+            isJump = false;
+            isJump2 = false;
+
+            for (int i = 0; i < instrCount.length; i++) {
+                instrCount[i] = Accumulator2 - 1;
+            }
+
             System.out.println("Jump to: " + Accumulator2);
         } else if (!memWrite2) {
             registers.setRegister(R1mem, Accumulator2);
@@ -157,16 +180,19 @@ public class CPU {
 
     private static void memory() {
         // Only do memory on even cycles and after first execute completed
-        if (clockCycles < 6 || clockCycles % 2 == 1 || clockCycles > (2 * numInstructions + 5)) return;
-
+        if (clockCycles < (fetchStart + 5) || clockCycles % 2 == (fetchStart  % 2) || instrCount[3] >= numInstructions) return;
+        
         memWrite2 = memWrite;
         isJump2 = isJump;
+        jumpValue2 = jumpValue;
         Accumulator2 = Accumulator;
-        R1mem = R1exec;
+        R1mem = R1exec1;
         
         // Log current instruction number
         instrCount[3]++;
         System.out.println(clockCycles + " - [MEMORY]: Instruction " + instrCount[3]);
+
+        if (isJump && jumpValue) return;
 
         // Check if NOP
         NOPmem = NOPexec;
@@ -181,15 +207,17 @@ public class CPU {
             System.out.println("Read: " + Accumulator2);
         }
         else if (memWrite) {
-            MEM[Accumulator]=R1exec;
-            System.out.println("Write: " + R1exec + " in " + Accumulator);
+            MEM[Accumulator]=R1exec1;
+            System.out.println("Write: " + R1exec1 + " in " + Accumulator);
         }
+
         System.out.println(dashes);
     }
 
     private static void execute() {
         // Only decode after first decode completed
-        if (clockCycles < 4 || clockCycles > (2 * numInstructions + 3)) return;
+        if (clockCycles < (fetchStart + 3) || instrCount[2] >= numInstructions) return;
+        if (isJump && jumpValue) return;
 
         // Act based on ALU status, busy simulates the 2 cycles it takes to perform the operations
         if (alu.isBusy()) {
@@ -204,7 +232,8 @@ public class CPU {
                 System.out.println(dashes);
                 return;
             }
-            
+            R1exec1 = R1exec;
+            jumpValue = alu.jumpvalue;
             System.out.println("Accumulator: " + Accumulator);
             System.out.println(dashes);
             return;
@@ -226,10 +255,10 @@ public class CPU {
 
     private static void decode() {
         // Only decode after first fetch completed
-        if (clockCycles < 2 || clockCycles > (2 * numInstructions + 1)) return;
+        if (clockCycles < (fetchStart + 1) || instrCount[1] >= numInstructions) return;
 
         // Simulate decode on two cycles
-        if (clockCycles % 2 == 0) {
+        if (clockCycles % 2 == ((fetchStart + 1) % 2)) {
             opcode =  (IR & 0b11110000000000000000000000000000) >> 28;  // bits31:28
             R1 =      (IR & 0b00001111100000000000000000000000) >> 23;  // bits27:23
             int R2 =  (IR & 0b00000000011111000000000000000000) >> 18;  // bits22:18
@@ -269,7 +298,7 @@ public class CPU {
 
     private static void fetch() {
         // Only fetch on odd cycles
-        if (clockCycles % 2 == 0 || clockCycles > (2 * numInstructions - 1)) return;
+        if (clockCycles % 2 == ((fetchStart + 1) % 2) || instrCount[0] >= numInstructions) return;
 
         // Move PC to MAR, then increment it
         int AR = registers.getPC();
