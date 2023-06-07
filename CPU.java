@@ -192,7 +192,10 @@ public class CPU {
         instrCount[3]++;
         System.out.println(clockCycles + " - [MEMORY]: Instruction " + instrCount[3]);
 
-        if (isJump && jumpValue) return;
+        if (isJump && jumpValue) {
+            System.out.println("SKIP AFTER JUMP\n" + dashes);
+            return;
+        } 
 
         // Check if NOP
         NOPmem = NOPexec;
@@ -217,7 +220,13 @@ public class CPU {
     private static void execute() {
         // Only decode after first decode completed
         if (clockCycles < (fetchStart + 3) || instrCount[2] >= numInstructions) return;
-        if (isJump && jumpValue) return;
+        
+        if (isJump && jumpValue) {
+            // Log current instruction number
+            System.out.println(clockCycles + " - [EXECUTE]: Instruction " + instrCount[2]);
+            System.out.println("SKIP AFTER JUMP\n" + dashes);
+            return;
+        }
 
         // Act based on ALU status, busy simulates the 2 cycles it takes to perform the operations
         if (alu.isBusy()) {
@@ -264,7 +273,7 @@ public class CPU {
             int R2 =  (IR & 0b00000000011111000000000000000000) >> 18;  // bits22:18
             int R3 =  (IR & 0b00000000000000111110000000000000) >> 13;  // bits17:13
             shamt =   (IR & 0b00000000000000000001111111111111);         // bits17:10
-            imm =     (IR & 0b00000000000000111111111111111111);         // bits17:0
+            imm =     signBit(IR & 0b00000000000000111111111111111111);         // bits17:0
             address = (IR & 0b00001111111111111111111111111111);         // bits27:0
             
             valueR1 = registers.getRegister(R1);
@@ -311,5 +320,13 @@ public class CPU {
         System.out.println("PC: " + AR);
         System.out.println("Instruction " + Integer.toBinaryString(IR));
         System.out.println(dashes);
+    }
+
+    private static int signBit(int x) {
+        if ((x & 0b00000000000000100000000000000000) > 0) {
+            x += 0b11111111111111000000000000000000;
+        }
+
+        return x;
     }
 }

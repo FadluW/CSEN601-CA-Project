@@ -96,12 +96,12 @@ public class Instruction {
             case "MOVM": {
                 instructionBinaryCode += RegisterNumber(instruction[1]) << 23;
                 instructionBinaryCode += RegisterNumber(instruction[2]) << 18;
-                instructionBinaryCode += Integer.parseInt(instruction[3]);
+                instructionBinaryCode += twosCompliment(Integer.parseInt(instruction[3]));
                 break;
             }
             case "MOVI": {
                 instructionBinaryCode += RegisterNumber(instruction[1]) << 23;
-                instructionBinaryCode += Integer.parseInt(instruction[2]);
+                instructionBinaryCode += twosCompliment(Integer.parseInt(instruction[2]));
                 break;
             }
             case "JMP": {
@@ -140,5 +140,13 @@ public class Instruction {
     public static int RegisterNumber(String Register)
     {
     	return Integer.parseInt(Register.substring(1));
+    }
+
+    private static int twosCompliment(int x) {
+        if (x > 0) {
+            return x & 0b00000000000000111111111111111111;
+        }
+
+        return x;
     }
 }
