@@ -11,9 +11,11 @@ public class CPU {
     static boolean done = false;
     static int clockCycles = 1;
     static int numInstructions;
+    static int numInstructionsExecuted = 0;
     static int fetchStart;
     static int IR;
     static int[] MEM = new int[2048];
+    static int highestMEMUsed = -1;
     static int[] instrCount = {0, 0, 0, 0, 0};
 
     // Global Registers for decode
@@ -34,6 +36,7 @@ public class CPU {
     static boolean jumpValue;
     static int R1exec;
     static int R1exec1;
+    static int R1valexec;
     static boolean NOPexec;
     
     // Global Register for memory
@@ -87,8 +90,8 @@ public class CPU {
             int instructionBinaryCode= i.getBinaryInt();
             
             int PC = registers.getPC();
-            registers.incPC(); 
             MEM[PC] = instructionBinaryCode;
+            registers.incPC(); 
         }
 
         // Get total instructions from the value of the PC after finishing reading the text file
@@ -138,10 +141,10 @@ public class CPU {
         // Only do writeback on odd cycles and after first memory completed
         if (clockCycles < (fetchStart + 6) || clockCycles % 2 == ((fetchStart + 1) % 2)) return;
         
-
         // Check if done
         if (instrCount[4] >= numInstructions) {
             done = true;
+            printEnd();
             return;
         }
         
@@ -153,24 +156,27 @@ public class CPU {
         if (NOPmem) {
             System.out.println("NOP instruction");
             System.out.println(dashes);
+            NOPmem = false;
             return;
         }
         
-        if (isJump2 && jumpValue2) {
-            registers.setPC(Accumulator2);
-            
-            // Reset stats used
-            fetchStart = clockCycles;
-            jumpValue = false;
-            jumpValue2 = false;
-            isJump = false;
-            isJump2 = false;
-
-            for (int i = 0; i < instrCount.length; i++) {
-                instrCount[i] = Accumulator2 - 1;
+        if (isJump2) {
+            if (jumpValue2) {
+                registers.setPC(Accumulator2);
+                
+                // Reset stats used
+                fetchStart = clockCycles;
+                jumpValue = false;
+                jumpValue2 = false;
+                isJump = false;
+                isJump2 = false;
+                
+                for (int i = 0; i < instrCount.length; i++) {
+                    instrCount[i] = Accumulator2 - 1;
+                }
+                
+                System.out.println("Jump to: " + Accumulator2);
             }
-
-            System.out.println("Jump to: " + Accumulator2);
         } else if (!memWrite2) {
             registers.setRegister(R1mem, Accumulator2);
             System.out.println("Writeback " + Accumulator2 + " to R" + R1mem);
@@ -202,16 +208,20 @@ public class CPU {
         if (NOPexec) {
             System.out.println("NOP instruction");
             System.out.println(dashes);
+            NOPexec = false;
             return;
         }
 
         if (memRead) {
-            Accumulator2 = MEM[Accumulator];
-            System.out.println("Read: " + Accumulator2);
+            Accumulator2 = MEM[Accumulator + 1024];
+            System.out.println("Read from memory: " + Accumulator2 + " in " + (Accumulator + 1024));
         }
         else if (memWrite) {
-            MEM[Accumulator]=R1exec1;
-            System.out.println("Write: " + R1exec1 + " in " + Accumulator);
+            MEM[Accumulator + 1024]=R1valexec;
+            if (Accumulator + 1024 > highestMEMUsed) {
+                highestMEMUsed = Accumulator + 1024;
+            }
+            System.out.println("Write to memory: " + R1valexec + " in " + (Accumulator + 1024));
         }
 
         System.out.println(dashes);
@@ -219,7 +229,7 @@ public class CPU {
 
     private static void execute() {
         // Only decode after first decode completed
-        if (clockCycles < (fetchStart + 3) || instrCount[2] >= numInstructions) return;
+        if (clockCycles < (fetchStart + 3) || instrCount[2] > numInstructions) return;
         
         if (isJump && jumpValue) {
             // Log current instruction number
@@ -234,6 +244,11 @@ public class CPU {
             System.out.println(clockCycles + " - [EXECUTE]: Instruction " + instrCount[2]);
             Accumulator = alu.free();
 
+            // Ensure execute stays in instruction number
+            if (instrCount[2] == numInstructions) {
+                instrCount[2]++;
+            }
+
             // Check if this is a NOP
             NOPexec = alu.isNOP();
             if (NOPexec) {
@@ -245,6 +260,7 @@ public class CPU {
             jumpValue = alu.jumpvalue;
             System.out.println("Accumulator: " + Accumulator);
             System.out.println(dashes);
+            numInstructionsExecuted++;
             return;
         }
 
@@ -255,6 +271,7 @@ public class CPU {
         alu.execute();
         
         R1exec = alu.R1;
+        R1valexec = alu.valueR1;
         memRead = alu.memRead;
         memWrite = alu.memWrite;
         isJump = alu.isJump;
@@ -264,7 +281,7 @@ public class CPU {
 
     private static void decode() {
         // Only decode after first fetch completed
-        if (clockCycles < (fetchStart + 1) || instrCount[1] >= numInstructions) return;
+        if (clockCycles < (fetchStart + 1) || instrCount[1] > numInstructions) return;
 
         // Simulate decode on two cycles
         if (clockCycles % 2 == ((fetchStart + 1) % 2)) {
@@ -272,8 +289,8 @@ public class CPU {
             R1 =      (IR & 0b00001111100000000000000000000000) >> 23;  // bits27:23
             int R2 =  (IR & 0b00000000011111000000000000000000) >> 18;  // bits22:18
             int R3 =  (IR & 0b00000000000000111110000000000000) >> 13;  // bits17:13
-            shamt =   (IR & 0b00000000000000000001111111111111);         // bits17:10
-            imm =     signBit(IR & 0b00000000000000111111111111111111);         // bits17:0
+            shamt =   (IR & 0b00000000000000000001111111111111);        // bits17:10
+            imm = signBit(IR & 0b00000000000000111111111111111111);         // bits17:0
             address = (IR & 0b00001111111111111111111111111111);         // bits27:0
             
             valueR1 = registers.getRegister(R1);
@@ -302,6 +319,11 @@ public class CPU {
             // Log current instruction number
             System.out.println(clockCycles + " - [DECODE]: Instruction " + instrCount[1]);
             System.out.println(dashes);
+
+            // Ensure decode stays within limits of instructions
+            if (instrCount[1] == numInstructions) {
+                instrCount[1]++;
+            }
         }
     }
 
@@ -328,5 +350,39 @@ public class CPU {
         }
 
         return x;
+    }
+
+    private static void printEnd() {
+        System.out.println("\n[PROGRAM ENDED]");
+        System.out.println("Number of instructions: " + numInstructions);
+        System.out.println("Instructions Executed: " + numInstructionsExecuted);
+        printMemory();
+        registers.printRegisters();
+    }
+
+    private static void printMemory() {
+        final String dot = "           .";
+
+        System.out.println("\n[MEM CONTENTS]");
+
+        // Iterate over the memory
+        // Print the instruction part
+        for (int i = 0; i < numInstructions; i++) {
+            System.out.println("|_ [" + i + "] - " + Instruction.bitPadding(Integer.toBinaryString(MEM[i]), 32));
+        }
+
+        // Separator
+        for (int i = 0; i < 3; i++){
+            System.out.println(dot);
+        }
+
+        // Print the data part
+        if (highestMEMUsed < 0) {
+            System.out.println("      NO DATA PART   ");
+        } else {
+            for (int i = 1024; i <= highestMEMUsed; i++) {
+                System.out.println("|_ [" + i + "] - " + MEM[i]);
+            }
+        }
     }
 }

@@ -23,31 +23,31 @@ public class Instruction {
                 break;
             }
             case "SUB": {
-                instructionBinaryCode += 0b10000000000000000000000000000;
+                instructionBinaryCode += 0b00010000000000000000000000000000;
                 break;
             } 
             case "MUL": {
-                instructionBinaryCode += 0b100000000000000000000000000000;
+                instructionBinaryCode += 0b00100000000000000000000000000000;
                 break;
             }
             case "MOVI": {
-                instructionBinaryCode += 0b110000000000000000000000000000;
+                instructionBinaryCode += 0b00110000000000000000000000000000;
                 break;
             }
             case "JEQ": {
-                instructionBinaryCode += 0b1000000000000000000000000000000;
+                instructionBinaryCode += 0b01000000000000000000000000000000;
                 break;
             }
             case "AND": {
-                instructionBinaryCode += 0b1010000000000000000000000000000;
+                instructionBinaryCode += 0b01010000000000000000000000000000;
                 break;
             }
             case "XORI": {
-                instructionBinaryCode += 0b1100000000000000000000000000000;
+                instructionBinaryCode += 0b01100000000000000000000000000000;
                 break;
             }
             case "JMP": {
-                instructionBinaryCode += 0b1110000000000000000000000000000;
+                instructionBinaryCode += 0b01110000000000000000000000000000;
                 break;
             }
             case "LSL": {
@@ -67,7 +67,7 @@ public class Instruction {
                 break;
             }
             case "NOP": {
-                instructionBinaryCode = 0b11000000000000000000000000000000;
+                instructionBinaryCode =  0b11000000000000000000000000000000;
                 return;
             }
         }
@@ -112,7 +112,6 @@ public class Instruction {
     }
 
     /**
-     * @deprecated
      * Takes an integer number and translates it to string binary, adding zero padding to the left until it is required bits long.
      * @param num denary integer in the form of a String
      * @param bitLength number of bits binary string should end up as
@@ -120,15 +119,15 @@ public class Instruction {
      */
     public static String bitPadding(String num, int bitLength) {
         // Convert number to binary string
-    	String out = Integer.toBinaryString(Integer.parseInt(num));
+    	// String num = Integer.toBinaryString(Integer.parseInt(num));
 
         // Iterate until string is of required length
-    	while(out.length() < bitLength)
+    	while(num.length() < bitLength)
     	{
-    		out = "0" + out;
+    		num = "0" + num;
     	}
     	
-    	return out;
+    	return num;
 	}
 
     /**

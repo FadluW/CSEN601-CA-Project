@@ -1,7 +1,10 @@
 package components;
 
 public class Registers {
-    private int GPRS[] = new int[31];   //R1 - R31
+    static final String dashes = "------------------------";
+    static final int NUM_REGISTERS = 31;
+
+    private int GPRS[] = new int[NUM_REGISTERS];   //R1 - R31
     private final static int zeroRegister = 0;
     private int PC = 0;
 
@@ -20,7 +23,7 @@ public class Registers {
      */
     public int getRegister(int x) {
         // Ensure within register range
-        if (x < 0 || x > 31) return 0;
+        if (x < 0 || x > NUM_REGISTERS) return 0;
 
         if (x == 0) return zeroRegister;
         return GPRS[x - 1];
@@ -34,10 +37,11 @@ public class Registers {
      */
     public void setRegister(int x, int value) {
         // Ensure within register range
-        if (x < 0 || x > 31) return;
-
+        if (x < 0 || x > NUM_REGISTERS) return;
+        
         if (x == 0) return;
         GPRS[x - 1] = value;
+        System.out.println("\nRegister R" + x + " reassigned to " + value + "\n");
     }
 
     /**
@@ -67,5 +71,13 @@ public class Registers {
     public int setPC(int x) {
         PC = x;
         return PC;
+    }
+
+    public void printRegisters() {
+        System.out.println("\n[REG CONTENTS]");
+        System.out.println("|_ [R0] - " + zeroRegister);
+        for (int i = 0; i < NUM_REGISTERS; i++) {
+            System.out.println("|_ [R" + (i + 1) + "] - " + GPRS[i]);
+        }
     }
 }

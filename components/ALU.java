@@ -8,7 +8,7 @@ public class ALU {
     private int shamt;
     private int imm;
     private int address;
-    private int valueR1;
+    public int valueR1;
     private int valueR2;
     private int valueR3;
     private int pc;
@@ -75,17 +75,17 @@ public class ALU {
             }
             // AND 
             case 0b101: {
-                result = valueR1 & valueR2;
+                result = valueR2 & valueR3;
                 break;
             }
             // XOR
             case 0b110: {
-                result = (valueR1 ^ valueR2);
+                result = (valueR2 ^ imm);
                 break;
             }
             // JMP
             case 0b111: {
-                result = (pc & 0b11110000000000000000000000000000) + address - 1;
+                result = (pc & 0b11110000000000000000000000000000) + address;
                 isJump = true;
                 jumpvalue=true;
                 break;
@@ -109,7 +109,7 @@ public class ALU {
             // MOVM
             case -5: {
                 memWrite = true;
-                result = valueR2 + imm;
+                result = valueR2 + imm - 1;
                 break;
             }
             // NOP
