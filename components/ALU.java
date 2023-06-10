@@ -103,7 +103,7 @@ public class ALU {
             // MOVR
             case -6: {
                 memRead = true;
-                result = valueR2 + imm;
+                result = valueR2 + imm - 1;
                 break;
             }
             // MOVM

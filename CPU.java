@@ -31,8 +31,11 @@ public class CPU {
     // Global Register for execute
     static int Accumulator;
     static boolean memWrite;
+    static boolean memWrite1;
     static boolean memRead;
+    static boolean memRead1;
     static boolean isJump;
+    static boolean isJump1;
     static boolean jumpValue;
     static int R1exec;
     static int R1exec1;
@@ -68,7 +71,7 @@ public class CPU {
             writeback();
             clockCycles++;
         }
-            
+        printEnd();
     }
 
     private static void parse(String filelocation) {
@@ -144,7 +147,6 @@ public class CPU {
         // Check if done
         if (instrCount[4] >= numInstructions) {
             done = true;
-            printEnd();
             return;
         }
         
@@ -176,6 +178,9 @@ public class CPU {
                 }
                 
                 System.out.println("Jump to: " + Accumulator2);
+                if (Accumulator2 < 0 || Accumulator2 >= numInstructions) {
+                    done = true;
+                }
             }
         } else if (!memWrite2) {
             registers.setRegister(R1mem, Accumulator2);
@@ -188,7 +193,7 @@ public class CPU {
         // Only do memory on even cycles and after first execute completed
         if (clockCycles < (fetchStart + 5) || clockCycles % 2 == (fetchStart  % 2) || instrCount[3] >= numInstructions) return;
         
-        memWrite2 = memWrite;
+        memWrite2 = memWrite1;
         isJump2 = isJump;
         jumpValue2 = jumpValue;
         Accumulator2 = Accumulator;
@@ -212,11 +217,11 @@ public class CPU {
             return;
         }
 
-        if (memRead) {
+        if (memRead1) {
             Accumulator2 = MEM[Accumulator + 1024];
             System.out.println("Read from memory: " + Accumulator2 + " in " + (Accumulator + 1024));
         }
-        else if (memWrite) {
+        else if (memWrite1) {
             MEM[Accumulator + 1024]=R1valexec;
             if (Accumulator + 1024 > highestMEMUsed) {
                 highestMEMUsed = Accumulator + 1024;
@@ -258,6 +263,9 @@ public class CPU {
             }
             R1exec1 = R1exec;
             jumpValue = alu.jumpvalue;
+            memRead1 = memRead;
+            memWrite1 = memWrite;
+            isJump1 = isJump;
             System.out.println("Accumulator: " + Accumulator);
             System.out.println(dashes);
             numInstructionsExecuted++;

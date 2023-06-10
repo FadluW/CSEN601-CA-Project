@@ -143,9 +143,9 @@ public class Instruction {
 
     private static int twosCompliment(int x) {
         if (x > 0) {
-            return x & 0b00000000000000111111111111111111;
+            return x & 0b00000000000000011111111111111111;
+        } else {
+            return (x | 0b00000000000000100000000000000000) & 0b00000000000000111111111111111111;
         }
-
-        return x;
     }
 }
